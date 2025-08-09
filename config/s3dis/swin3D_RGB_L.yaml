@@ -1,0 +1,80 @@
+DATA:
+  data_name: s3dis
+  yz_shift: True
+#  data_root: /mnt/data/S3DIS/stanford_indoor3d
+  data_root: SemanticSeg/config/s3dis/data/stanford_indoor3d
+  test_area: 5
+  classes: 13
+  fea_dim: 6
+  voxel_size: 0.04
+  voxel_max: 80000  # 原80000，降低体素最大数量以减少显存占用
+  loop: 10  # 原10，减少循环次数降低显存占用
+
+TRAIN:
+  # arch
+  arch: Swin3D_RGB
+  fp16_mode: 1 # 开启混合精度训练
+  stem_transformer: True
+  use_xyz: True
+  use_offset: True
+  sync_bn: True  # adopt sync_bn or not
+  rel_query: True
+  rel_key: True
+  rel_value: True
+  quant_size: 4 # pos_bias_table: 2x(4x5)-1 = 39   原4，降低量化尺寸减少计算量和显存占用
+  num_layers: 5 # 原5，减少网络层数简化模型结构
+  patch_size: 1
+  window_size: [5, 7, 7, 7, 7]  # 原[5,7,7,7,7]，缩小窗口尺寸降低计算复杂度
+  depths: [2, 4, 9, 4, 4]  # 原[2,4,9,4,4]，减少各层深度简化模型
+  channels: [80, 160, 320, 640, 640]  # 原[80,160,320,640,640]，降低通道数减少参数量
+  num_heads: [10, 10, 20, 40, 40]  # 原[10,10,20,40,40]，减少注意力头数降低显存
+  signal: True
+  knn_down: True
+  down_stride: 2
+  upsample: linear_attn
+  up_k: 3
+  drop_path_rate: 0.3
+  concat_xyz: True
+
+  # training
+  aug: True
+  transformer_lr_scale: 0.1
+  jitter_sigma: 0.005
+  jitter_clip: 0.02
+  scheduler_update: step
+  scheduler: CosineWithWarmup
+  warmup: linear
+  warmup_iters: 1500  # 原1500，适当减少预热迭代次数
+  warmup_ratio: 0.000001
+  use_amp: True
+  optimizer: AdamW
+  ignore_label: 255
+  train_gpu: [0]
+  workers: 16  # data loader workers
+  batch_size: 3  # 原3，减小训练批次大小降低显存占用
+  batch_size_val: 2 # 原2，减小验证批次大小
+  base_lr: 0.001
+  epochs: 100
+  start_epoch: 0
+  step_epoch: 30
+  multiplier: 0.1
+  momentum: 0.9
+  weight_decay: 0.05
+  drop_rate: 0.5
+  manual_seed: 123
+  print_freq: 10
+  save_freq: 1
+  save_path: runs/s3dis_Swin3D_RGB_L_1
+  weight:  # path to initial weight (default: none)
+  weight_for_innner_model: False
+  resume: latest  # path to latest checkpoint (default: none)
+  skip_first_conv: False
+  evaluate: True  # evaluate on validation set, extra gpu memory needed and small batch_size_val is recommend
+  eval_freq: 2
+Distributed:
+  dist_url: tcp://127.0.0.1:6789
+  dist_backend: 'nccl'
+  multiprocessing_distributed: True
+  world_size: 1
+  rank: 0
+
